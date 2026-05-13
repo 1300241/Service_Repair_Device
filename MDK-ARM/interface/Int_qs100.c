@@ -3,7 +3,10 @@
 uint8_t qs100_buff[QS100_BUFF_SIZE];
 uint16_t qs100_buff_len = 0;
 uint16_t qs100_current_len = 0;
-uint8_t cmd_buff[256] = {0};
+
+uint8_t cmd_buff[QS100_DATA_MAX_LEN] = {0};
+// 限制单次发送的内容最大长度为 512/2
+uint8_t data_hex_buff[QS100_DATA_MAX_LEN] = {0};
 
 void Int_qs100_send_cmd(uint8_t *cmd)
 {
@@ -29,7 +32,8 @@ void Int_qs100_send_cmd(uint8_t *cmd)
             qs100_buff_len = QS100_BUFF_SIZE;
             break;
         }
-        
+        // 累计数据长度
+        qs100_buff_len += qs100_current_len;
         count ++;
         if(count > QS100_MAX_RECV_COUNTS)
         {
@@ -51,7 +55,7 @@ void Int_qs100_init(void)
     HAL_GPIO_WritePin(NB_WKUP_GPIO_Port, NB_WKUP_Pin, GPIO_PIN_RESET);
 
     // 2. 软件重启
-    HAL_UART_Transmit(&huart3, "AT+RB\r\n", 7, 1000);
+    HAL_UART_Transmit(&huart3, "AT+RB\r\n", 8, 1000);
     memset(qs100_buff,0,QS100_BUFF_SIZE);
     HAL_UART_Receive(&huart3, qs100_buff, QS100_BUFF_SIZE, 3000);
     debug_printf("qs100_buff: %s",qs100_buff);
@@ -124,7 +128,7 @@ IOT_Status Int_qs100_open_socket(uint8_t *socket_id)
  */
 IOT_Status Int_qs100_connect_server(uint8_t socket_id)
 {
-    memset(cmd_buff,0,256);
+    memset(cmd_buff,0,QS100_DATA_MAX_LEN);
     sprintf((char *)cmd_buff,"AT+NSOCO=%d,%s,%d\r\n",socket_id,QS100_SERVER_IP,QS100_SERVER_PORT);
     Int_qs100_send_cmd(cmd_buff);
     debug_printf("%s", qs100_buff);
@@ -138,10 +142,79 @@ IOT_Status Int_qs100_connect_server(uint8_t socket_id)
 /**
  * @brief 使用外网发送消息到云服务器
  * 
+ * @param socket_id socket id
+ * @param data 消息内容 最大低于250
+ * @param len 消息长度
+ * @return IOT_Status
+ */
+IOT_Status Int_qs100_send(uint8_t socket_id, uint8_t *data, uint16_t len)
+{
+    memset(cmd_buff,0,QS100_DATA_MAX_LEN);
+    // 将Data转换为16进制字符串
+    memset(data_hex_buff,0,QS100_DATA_MAX_LEN);
+    for (int i = 0; i < len; i++)
+    {
+        sprintf((char *)data_hex_buff+i*2, "%02X", data[i]);
+    }
+
+    sprintf((char *)cmd_buff,"AT+NSOSD=%d,%d,%s,0x200,%d\r\n",socket_id,len,data_hex_buff,QS100_SEQUENCE_ID);
+    Int_qs100_send_cmd(cmd_buff);
+    debug_printf("%s", qs100_buff);
+    
+    // 通过发送AT+SEQUENCE=SOCKID,SEQID查询数据是否已经发送成功
+    uint8_t status = '2';
+    while (status == '2')
+    {
+        memset(cmd_buff,0,QS100_DATA_MAX_LEN);
+        sprintf((char *)cmd_buff,"AT+SEQUENCE=%d,%d\r\n",socket_id,QS100_SEQUENCE_ID);
+        Int_qs100_send_cmd(cmd_buff);
+        // status赋值 = 接收数据中的结果
+        for (uint8_t i = 0; i < qs100_buff_len; i++)
+        {
+            debug_printf("%d: %c",i,qs100_buff[i]);
+        }
+        // debug_printf("%s",qs100_buff);
+        // uint8_t status_index = strlen((char *)qs100_buff) - 9;
+        // debug_printf("status_index: %d",status_index);
+        status = qs100_buff[19];
+        debug_printf("status: %c",status);
+
+        // 添加延时 避免CPU占用过高
+        HAL_Delay(10);
+    }
+    if(status == '0')
+    {
+        return IOT_ERROR;
+    }
+    return IOT_OK;
+}
+
+/**
+ * @brief 关闭socket
+ * 
+ * @param socket_id socket id
+ * @return IOT_Status
+ */
+IOT_Status Int_qs100_close_socket(uint8_t socket_id)
+{
+    memset(cmd_buff,0,QS100_DATA_MAX_LEN);
+    sprintf((char *)cmd_buff,"AT+NSOCL=%d\r\n",socket_id);
+    Int_qs100_send_cmd(cmd_buff);
+    debug_printf("%s", qs100_buff);
+    if (strstr((char *)qs100_buff, "OK") == NULL)
+    {
+        return IOT_ERROR;
+    }
+    return IOT_OK;
+}
+
+/**
+ * @brief 使用外网发送消息到云服务器
+ * 
  * @param msg 消息内容
  * @param len 消息长度
  */
-void Int_qs100_send_msg(uint8_t *msg, uint16_t len)
+IOT_Status Int_qs100_send_msg(uint8_t *msg, uint16_t len)
 {
     // 1. 检查附着 是否能够连接到外网
     uint8_t count = 0;
@@ -166,7 +239,30 @@ void Int_qs100_send_msg(uint8_t *msg, uint16_t len)
         HAL_Delay(100);
         count ++;
     }
+
+    // 4. 发送消息
+    uint8_t send_count = 0;
+    IOT_Status status = IOT_ERROR;
+    while (Int_qs100_send(socket_id, msg, len) != IOT_OK && send_count < 3)
+    {
+        HAL_Delay(100);
+        send_count ++;
+    }
+    if (send_count >= 3)
+    {
+        // 发送失败
+        status = IOT_ERROR;
+    }
+    else
+    {
+        // 发送成功
+        status = IOT_OK;
+    }
     
+    // 5. 关闭连接
+    Int_qs100_close_socket(socket_id);
+
+    return status;
 }
 
 
