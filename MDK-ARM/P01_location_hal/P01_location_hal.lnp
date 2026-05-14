@@ -3,6 +3,7 @@
 "p01_location_hal\main.o"
 "p01_location_hal\gpio.o"
 "p01_location_hal\i2c.o"
+"p01_location_hal\spi.o"
 "p01_location_hal\tim.o"
 "p01_location_hal\usart.o"
 "p01_location_hal\stm32f1xx_it.o"
@@ -19,6 +20,7 @@
 "p01_location_hal\stm32f1xx_hal_flash.o"
 "p01_location_hal\stm32f1xx_hal_flash_ex.o"
 "p01_location_hal\stm32f1xx_hal_exti.o"
+"p01_location_hal\stm32f1xx_hal_spi.o"
 "p01_location_hal\stm32f1xx_hal_tim.o"
 "p01_location_hal\stm32f1xx_hal_tim_ex.o"
 "p01_location_hal\stm32f1xx_hal_uart.o"
@@ -31,6 +33,9 @@
 "p01_location_hal\int_at6558r.o"
 "p01_location_hal\int_mpu6050.o"
 "p01_location_hal\int_qs100.o"
+"p01_location_hal\driver_llcc68.o"
+"p01_location_hal\driver_llcc68_interface.o"
+"p01_location_hal\int_llcc68.o"
 --library_type=microlib --strict --scatter "P01_location_hal\P01_location_hal.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

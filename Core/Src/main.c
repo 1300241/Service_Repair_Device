@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -32,6 +33,7 @@
 #include "Int_AT6558R.h"
 #include "Int_mpu6050.h"
 #include "Int_qs100.h"
+#include "Int_llcc68.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -101,6 +103,7 @@ int main(void)
   MX_I2C1_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   
   // 使用串口输出  ==> 打印一次hello world需要多长时间  ==> 1ms
@@ -140,9 +143,14 @@ int main(void)
   // Int_mpu6050_init();
 
   // 测试Iot
-  Int_qs100_init();
-  Int_qs100_send_msg((uint8_t *)"hello world",11);
-  HAL_Delay(1000);
+  // Int_qs100_init();
+  // Int_qs100_send_msg((uint8_t *)"hello world",11);
+  // HAL_Delay(1000);
+
+  // 测试lora
+  Int_llcc68_init();
+  uint8_t data[16] = {0};
+  uint16_t len = 0;
 
   /* USER CODE END 2 */
 
@@ -162,7 +170,16 @@ int main(void)
     // debug_printf("gyro: %.4f,%.4f,%.4f",gyro.gyro_x,gyro.gyro_y,gyro.gyro_z);
     // debug_printf("accel: %f,%f,%f",accel.accel_x,accel.accel_y,accel.accel_z);
 
+    // Int_llcc68_send("hello czx",10);
+    Int_llcc68_receive(data, &len);
+    if (len > 0)
+    {
+      debug_printf("data: %s",data);
+      memset(data, 0, len);
+      len = 0;
+    }
     
+    HAL_Delay(1000);
 
     /* USER CODE END WHILE */
 
