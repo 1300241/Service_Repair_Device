@@ -7,12 +7,33 @@ uint16_t gps_full_buff_len = 0;
 uint8_t gps_line_buff[GPS_LINE_BUFFER_SIZE] = {0};
 uint16_t gps_line_buff_len = 0;
 
+// 编写对应接收数据的中断回调函数
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if (huart->Instance == USART2)
+    {
+        gps_full_buff_len = Size;
+        Int_GPS_Update_Data();  // 本身数据处理不耗费太多时间 => 写在中断里也行
+        // 处理完成数据之后 清空缓冲
+        memset(gps_full_buff, 0, GPS_FULL_BUFFER_SIZE);
+        gps_full_buff_len = 0;
+        HAL_UARTEx_ReceiveToIdle_IT(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE);
+    }
+    
+}
+
 /**
  * @brief 初始化GPS模块
  */
 void Int_GPS_Init(void)
 {
-
+    memset(gps_full_buff, 0, GPS_FULL_BUFFER_SIZE);
+    gps_full_buff_len = 0;
+    // GPS芯片发送完当次的定位数据之后 会发送一个空闲帧数据 => 接收空闲帧数据 判断是否接收完成
+    // 1. 达到超时时间 或者 缓冲区接收满了  =>  GPS芯片没有正常工作 / 缓冲区太小
+    // 2. 接收到了空闲帧数据  =>  接收完成
+    // 添加中断之后 变成异步接收
+    HAL_UARTEx_ReceiveToIdle_IT(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE);
 
 }
 
@@ -96,10 +117,7 @@ static void GPS_Parse_RMC(uint8_t *line_buff)
     sscanf((char *)line_buff,"$GNRMC,%6c%*4c,%c,%lf,%c,%lf,%c,  %*f,%*f,%6c",time,&status,&latitude,&latitude_dir,&longitude,&longitude_dir,date);
 
     // 打印
-    debug_printf("Time: %s, Date: %s, Status: %c, Latitude: %lf, LatDir: %c, Longitude: %lf, LonDir: %c\n",
-                 time, date, status, latitude, latitude_dir, longitude, longitude_dir);
-
-    
+    // debug_printf("Time: %s, Date: %s, Status: %c, Latitude: %lf, LatDir: %c, Longitude: %lf, LonDir: %c\n", time, date, status, latitude, latitude_dir, longitude, longitude_dir);
 
     if(status == 'A')
     {
@@ -188,12 +206,12 @@ static void GPS_Parse_VTG(uint8_t *line_buff)
  */
 void Int_GPS_Update_Data(void)
 {
-    memset(gps_full_buff, 0, GPS_FULL_BUFFER_SIZE);
-    gps_full_buff_len = 0;
-    // GPS芯片发送完当次的定位数据之后 会发送一个空闲帧数据 => 接收空闲帧数据 判断是否接收完成
-    // 1. 达到超时时间 或者 缓冲区接收满了  =>  GPS芯片没有正常工作 / 缓冲区太小
-    // 2. 接收到了空闲帧数据  =>  接收完成
-    HAL_UARTEx_ReceiveToIdle(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE, &gps_full_buff_len, 1200);
+    // memset(gps_full_buff, 0, GPS_FULL_BUFFER_SIZE);
+    // gps_full_buff_len = 0;
+    // // GPS芯片发送完当次的定位数据之后 会发送一个空闲帧数据 => 接收空闲帧数据 判断是否接收完成
+    // // 1. 达到超时时间 或者 缓冲区接收满了  =>  GPS芯片没有正常工作 / 缓冲区太小
+    // // 2. 接收到了空闲帧数据  =>  接收完成
+    // HAL_UARTEx_ReceiveToIdle(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE, &gps_full_buff_len, 1200);
     if(gps_full_buff_len > 0)
     {
         // debug_printf("GPS数据为:\n %s",gps_full_buff);

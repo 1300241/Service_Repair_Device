@@ -105,81 +105,16 @@ int main(void)
   MX_USART3_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+  debug_printf("hello world %d",10);
   
-  // 使用串口输出  ==> 打印一次hello world需要多长时间  ==> 1ms
-  // HAL_UART_Transmit(&huart1,"Hello World!",12,1000);
-  // printf("hello world");
-  // debug_printf("hello world %d",10);
-
-  // 测试全彩灯
-  // Int_led_send_data(LED_BLUE);
-
-  // 测试全彩灯 闪烁
-  // for(uint8_t i=0;i<10;i++)
-  // {
-  //   Int_led_blink(LED_RED,300);
-  // }
-
-  // 测试全彩灯 彩虹灯效果
-  // for(uint8_t i=0;i<5;i++)
-  // {
-  //   // ms * 80 是一轮的时间
-  //   Int_led_rainbow(15);
-  // }
-
-  // 测试蜂鸣器
-  // Int_buzzer_on();
-  // HAL_Delay(2000);
-  // Int_buzzer_off();
-  // Int_buzzer_music();
-
-  // 测试i2c连接DS3553芯片
-  // Int_step_init();
-
-  // 测试GPS
-  // Int_GPS_Init();
-
-  // 测试mpu6050
-  // Int_mpu6050_init();
-
-  // 测试Iot
-  // Int_qs100_init();
-  // Int_qs100_send_msg((uint8_t *)"hello world",11);
-  // HAL_Delay(1000);
-
-  // 测试lora
-  Int_llcc68_init();
-  uint8_t data[16] = {0};
-  uint16_t len = 0;
-
+  Int_GPS_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // uint32_t count = Int_step_get_count();
-    // debug_printf("count: %d",count);
-    // HAL_Delay(1000);
-
-    // Int_GPS_Update_Data();
-    // HAL_Delay(1000);
-
-    // Int_mpu6050_get_gyro_with_filter(&gyro);
-    // Int_mpu6050_get_accel_with_filter(&accel);
-    // debug_printf("gyro: %.4f,%.4f,%.4f",gyro.gyro_x,gyro.gyro_y,gyro.gyro_z);
-    // debug_printf("accel: %f,%f,%f",accel.accel_x,accel.accel_y,accel.accel_z);
-
-    // Int_llcc68_send("hello czx",10);
-    Int_llcc68_receive(data, &len);
-    if (len > 0)
-    {
-      debug_printf("data: %s",data);
-      memset(data, 0, len);
-      len = 0;
-    }
-    
-    HAL_Delay(1000);
+    // 裸机开发 只能按照代码顺序执行 => 获取GPS信息时无法执行其他的事情
 
     /* USER CODE END WHILE */
 
