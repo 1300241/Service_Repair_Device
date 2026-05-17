@@ -27,6 +27,7 @@
 "p01_location_hal\system_stm32f1xx.o"
 "p01_location_hal\com_debug.o"
 "p01_location_hal\com_filter.o"
+"p01_location_hal\cjson.o"
 "p01_location_hal\int_led.o"
 "p01_location_hal\int_buzzer.o"
 "p01_location_hal\int_step.o"
@@ -36,6 +37,7 @@
 "p01_location_hal\driver_llcc68.o"
 "p01_location_hal\driver_llcc68_interface.o"
 "p01_location_hal\int_llcc68.o"
+"p01_location_hal\app_upload_data.o"
 --library_type=microlib --strict --scatter "P01_location_hal\P01_location_hal.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

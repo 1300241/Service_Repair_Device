@@ -27,19 +27,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Com_debug.h"
-#include "Int_led.h"
-#include "Int_buzzer.h"
-#include "Int_step.h"
-#include "Int_AT6558R.h"
-#include "Int_mpu6050.h"
-#include "Int_qs100.h"
-#include "Int_llcc68.h"
+#include "App_upload_data.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-MPU6050_Gyro gyro;
-MPU6050_Accel accel = {.accel_x = 0, .accel_y = 0, .accel_z = 16384};
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -106,8 +99,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   debug_printf("hello world %d",10);
-  
-  Int_GPS_Init();
+  App_Upload_Data_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -115,7 +107,8 @@ int main(void)
   while (1)
   {
     // 裸机开发 只能按照代码顺序执行 => 获取GPS信息时无法执行其他的事情
-
+    App_upload_data();
+    HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

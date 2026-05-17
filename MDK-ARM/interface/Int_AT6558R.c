@@ -34,7 +34,7 @@ void Int_GPS_Init(void)
     // 2. 接收到了空闲帧数据  =>  接收完成
     // 添加中断之后 变成异步接收
     HAL_UARTEx_ReceiveToIdle_IT(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE);
-
+    HAL_UARTEx_ReceiveToIdle_IT(&huart2, gps_full_buff, GPS_FULL_BUFFER_SIZE);
 }
 
 /**
